@@ -1,0 +1,315 @@
+#“/* On my honor, I have neither given nor received unauthorized aid on this assignment */”. 
+
+import numpy as np
+import argparse  
+parser = argparse.ArgumentParser()  
+  
+# creating two variables using the add_argument method  
+parser.add_argument("filename", help = "first number") 
+  
+  
+args = parser.parse_args()  
+
+
+
+def convert_into_decimal(bits):
+
+    return -int(bits[0]) << len(bits) | int(bits, 2)
+
+#Reading the file
+BinaryInput =[]
+FileInput = open (str(args.filename) , "r")
+for x in FileInput:
+    BinaryInput.append(x)
+
+i = instruction_pointer = 260
+length= len(BinaryInput)
+code = {} #needs to be made global
+data = {} #needs to be made global
+cycle =1
+code_segment = 1
+for x in range (0,length):
+    if code_segment:
+        code[i] = BinaryInput[x][0:32]
+        i=i+4
+        if BinaryInput[x][0:6] == '000110':
+            code_segment = 0
+    else:        
+        int_format = convert_into_decimal(BinaryInput[x][0:32])
+        data[i] = int_format 
+        i=i+4
+
+
+registers = {
+    '00000' : 0 ,
+    '00001' : 0 ,
+    '00010' : 0 ,
+    '00011' : 0 ,
+    '00100' : 0 ,
+    '00101' : 0 ,
+    '00110' : 0 ,
+    '00111' : 0 ,
+    '01000' : 0 ,
+    '01001' : 0 ,
+    '01010' : 0 ,
+    '01011' : 0 ,
+    '01100' : 0 ,
+    '01101' : 0 ,
+    '01110' : 0 ,
+    '01111' : 0 ,
+    '10000' : 0 ,
+    '10001' : 0 ,
+    '10010' : 0 ,
+    '10011' : 0 ,
+    '10100' : 0 ,
+    '10101' : 0 ,
+    '10110' : 0 ,
+    '10111' : 0 ,
+    '11000' : 0 ,
+    '11001' : 0 ,
+    '11010' : 0 ,
+    '11011' : 0 ,
+    '11100' : 0 ,
+    '11101' : 0,
+    '11110' : 0 ,
+    '11111' : 0
+    
+}
+
+subroutines = {}
+
+def i_J():
+    global instruction_pointer
+    global cycle
+    temp_x = instruction[6:32]
+    temp_y = int(temp_x ,2)
+    temp_z = instruction_pointer - 4
+    jump_to = np.left_shift(temp_y , 2)
+    
+    instruction_pointer = jump_to
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " J # " + str(jump_to) )
+    
+def i_BEQ():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    temp_x = instruction[16:32]
+    temp_y = int(temp_x, 2)
+    temp_y = temp_y*4
+    offset_variable = temp_y #+ 4 #should check how this works
+    if(registers[instruction[6:11]] == registers[instruction[11:16]]) :
+
+        instruction_pointer = instruction_pointer + offset_variable 
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " BEQ " + "R" + 
+           str(int(instruction[6:11] ,2)) + " , " + "R" + str(int(instruction[11:16] ,2)) +" #" +str(temp_y))
+    
+def i_BNE():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    temp_x = instruction[16:32]
+    temp_y = int(temp_x, 2)
+    temp_y = temp_y*4
+    offset_variable = temp_y #+ 4 #should check how this works
+    if (registers[instruction[6:11]] != registers[instruction[11:16]]) :
+        instruction_pointer = instruction_pointer + offset_variable 
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " BNE " + "R" + 
+           str(int(instruction[6:11] ,2)) + " , " + "R" + str(int(instruction[11:16] ,2)) +" #" +str(temp_y))
+    
+def i_BGTZ():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    temp_x = instruction[16:32]
+    temp_y = int(temp_x, 2)
+    temp_y = temp_y*4
+    offset_variable = temp_y #+ 4 #should check how this works
+    if( registers[instruction[6:11]] > 0) :
+        instruction_pointer = instruction_pointer + offset_variable
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " BGTZ " + "R" + 
+           str(int(instruction[6:11] ,2)) +" #" +str(temp_y))
+    
+def i_SW():
+    global instruction_pointer
+    global cycle
+    
+    temp_z = instruction_pointer - 4
+    temp_x =int(instruction[16:32],2)
+    temp_y = temp_x + registers[instruction[6:11]]
+    data[temp_y] = registers[instruction[11:16]] 
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " SW " + "R" + 
+           str(int(instruction[11:16] ,2)) +" , " +str(temp_y) +"(" +  str(int(instruction[6:11] ,2)) + ")" ) 
+    #SW R5, 348(R6)
+    
+def i_LW():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    temp_x = int(instruction[16:32],2)
+    temp_y = registers[instruction[6:11]]
+    temp_w = temp_x + temp_y
+    registers[instruction[11:16]] = data[temp_w]
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " LW " + "R" + 
+           str(int(instruction[11:16] ,2)) +" , " +str(temp_x) +"(" +  str(int(instruction[6:11] ,2)) + ")" ) 
+    
+def i_Break():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + "BREAK" )
+
+def i_Add():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    registers[instruction[6:11]] = registers[instruction[11:16]] + registers[instruction[16:21]]
+    #write and call the print function
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " ADD " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) )
+    
+def i_Sub():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    registers[instruction[6:11]] = registers[instruction[11:16]] - registers[instruction[16:21]]
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " SUB " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) ) 
+    
+def i_AND():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    registers[instruction[6:11]] = int(bin(registers[instruction[11:16]]) & bin(registers[instruction[16:21]]))
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " AND " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) )
+
+def i_OR():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+     
+    registers[instruction[6:11]] = int(bin(registers[instruction[11:16]]) | bin(registers[instruction[16:21]]))
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " OR " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) )
+    
+def i_SRL():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    temp_x = registers[instruction[11:16]]
+    temp_y = int(instruction[16:21] ,2)
+    
+    registers[instruction[6:11]] = np.right_shift(temp_x , temp_y)
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " SRL " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) )
+    
+def i_SRA():
+    global instruction_pointer
+    global cycle
+    temp_y = int(instruction[16:21] ,2)
+    
+    registers[instruction[6:11]] = registers[instruction[11:16]] >> int(registers[instruction[16:21]])
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " SRL " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) ) 
+
+def i_MUL():
+    global instruction_pointer
+    global cycle
+    temp_z = instruction_pointer - 4
+    registers[instruction[6:11]] = registers[instruction[11:16]] * registers[instruction[16:21]]
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " MUL " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " R" + str(int(instruction[16:21],2)) ) 
+    
+def i_ADDI():
+    global instruction_pointer
+    global cycle
+    temp_z =instruction_pointer - 4
+    temp_x = instruction[16:32] #Local variable
+    temp_y = convert_into_decimal(temp_x) ##Local variable
+    registers[instruction[6:11]] = registers[instruction[11:16]] + temp_y
+    
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " ADDI " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " #" + str(temp_y) )  
+    
+def i_ANDI():
+    global instruction_pointer
+    global cycle
+    temp_z =instruction_pointer - 4
+    temp_x = instruction[16:32] #Local variable
+    temp_y = int(temp_x ,2) ##Local variable
+    
+    registers[instruction[6:11]] = int (bin(registers[instruction[11:16]]) & bin(temp_y))
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " ANDI " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " #" + str(temp_y) )  
+
+def i_ORI():
+    global instruction_pointer
+    global cycle
+    temp_x = instruction[16:32] #Local variable
+    temp_y = int(temp_x ,2) ##Local variable
+    temp_z =instruction_pointer - 4
+    
+    registers[instruction[6:11]] = int (bin(registers[instruction[11:16]]) | bin(temp_y))
+    file1.write('\n' + "Cycle " + str(cycle) + ": " + str(temp_z) + " ORI " + " R" + str(int(instruction[6:11],2)) +
+          " R" + str(int(instruction[11:16],2)) + " #" + str(temp_y) ) 
+
+subroutines = {
+    
+    '000000': i_J, 
+    '000001': i_BEQ, 
+    '000010': i_BNE, 
+    '000011': i_BGTZ, 
+    '000100': i_SW, 
+    '000101': i_LW, 
+    '000110': 'Break',
+    '001000': i_Add,
+    '001001': i_Sub,
+    '001010': i_AND,
+    '001011': i_OR,
+    '001100': i_SRL,
+    '001101': i_SRA,
+    '001110': i_MUL,
+    '010000': i_ADDI,
+    '010001': i_ANDI,
+    '010010': i_ORI    
+}
+
+
+
+file1 = open("Simulation.txt","w")
+
+while(1):
+       
+    instruction = code[instruction_pointer]    
+    #print(instruction)
+    subroutine_code = instruction[0:6]
+    subroutine_to_call = subroutines[subroutine_code]
+    if subroutine_to_call == 'Break':
+        file1.write('\n' + 'Break')
+        break    
+    instruction_pointer += 4
+    subroutine_to_call()
+    file1.write('\n' + "Registers")
+    file1.write('\n' + "R00" + " " + str(registers['00000']) + str(registers['00001']) + str(registers['00010']) + str(registers['00011']) +
+                         str(registers['00100']) + str(registers['00101']) + str(registers['00110']) + str(registers['00111']))
+    file1.write('\n' + "R08" + " " + str(registers['01000']) + str(registers['01001']) + str(registers['01010']) + str(registers['01011']) +
+                         str(registers['01100']) + str(registers['01101']) + str(registers['01110']) + str(registers['01111']))
+    file1.write('\n' + "R16" + " " + str(registers['10000']) + str(registers['10001']) + str(registers['10010']) + str(registers['10011']) +
+                         str(registers['10100']) + str(registers['10101']) + str(registers['10110']) + str(registers['10111']))
+    file1.write('\n' + "R24" + " " + str(registers['11000']) + str(registers['11001']) + str(registers['11010']) + str(registers['11011']) +
+                         str(registers['11100']) + str(registers['11101']) + str(registers['11110']) + str(registers['11111']))
+    
+    file1.write('\n' + "Data")
+    
+    for i in range(len(list(data.keys()))) : 
+        file1.write('\n' + '\n' + str(list(data.keys())[i]) + ': ' + str(list(data.values())[i]))
+    
+    cycle += 1
+    
+file1.close()
